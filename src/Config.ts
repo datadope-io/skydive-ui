@@ -261,6 +261,7 @@ var DefaultConfig = {
             { class: "", text: "Filter NS(demo)", disabled: false, callback: () => { window.App.loadExtraConfig("/assets/nsconfig.js") } }
         ]
     },
+    // Tags associated to each host, used to filter
     nodeTags: function (data) {
         if (data.Tags && Array.isArray(data.Tags)) {
           return [...data.Tags, "All"]
@@ -271,11 +272,20 @@ var DefaultConfig = {
     nodeTabTitle: function (node: Node): string {
         return node.data.Name.substring(0, 8)
     },
+    // Number of nodes displayed when a group is displayed
     groupSize: 3,
+    // The group type of each node
     groupType: function (node: Node): string | undefined {
         var nodeType = node.data.Type
         if (!nodeType) {
             return
+        }
+
+        // If the node has the SubType metadata value defined
+        // group by that value instead of Type
+        // TODO: group by Type if there are not enough SubType nodes to form a group
+        if (node.data.SubType) {
+          return node.data.SubType
         }
 
         switch (nodeType) {
