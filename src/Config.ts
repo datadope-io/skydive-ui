@@ -2,6 +2,9 @@ import { Node, Link, NodeAttrs } from './Topology'
 import Tools from './Tools'
 
 const WEIGHT_NONE = 0
+const WEIGHT_APPLICATION = 1
+const WEIGHT_COMPONENT = 2
+const WEIGHT_INSTANCE = 3
 const WEIGHT_FABRIC = 10
 const WEIGHT_PHYSICAL = 13
 const WEIGHT_BRIDGES = 14
@@ -144,8 +147,35 @@ var DefaultConfig = {
 
         return attrs
     },
+    // Map Metadata.Icon string value to different icons
+    iconMap: {
+      "Host": "\uf109",
+      "Component": "\uf24d",
+      "Application": "\uf1e0",
+    },
+    // Map Metadata.Badges[] string value to different icons
+    badgeMap: {
+      "Broker": "\uf084",
+      "Cluster": "\uf6ff",
+      "Node": "\uf109",
+    },
     _nodeAttrsInfra: function (node: Node): NodeAttrs {
         var attrs = this._newAttrs(node)
+
+        // Assign attributes based on Type, Icon and Badges
+        const weight = this.weightTitles();
+        if (weight.hasOwnProperty(node.data.Type)) {
+          attrs.weight = weight[node.data.Type]
+          // Get icon or show a default one
+          attrs.icon = this.iconMap[node.data.Icon]
+          if (node.data.Badges) {
+            attrs.badges = node.data.Badges.map(b => this.badgeMap[b] || "\uf03d")
+          }
+          // Reference of others possible parameters
+          //attrs.href = "assets/icons/k8s.png"
+          //attrs.iconClass = "font-brands"
+          return attrs
+        }
 
         if (node.data.OfPort) {
             attrs.weight = WEIGHT_PORTS
@@ -245,8 +275,13 @@ var DefaultConfig = {
     nodeDblClicked: function (node: Node) {
         window.App.tc.expand(node)
     },
+    // Menu for right click on nodes
     nodeMenu: function (node: Node) {
         return [
+            { class: "", text: "Expand all", disabled: false, callback: () => {
+              console.log("expand all")
+              window.App.tc.expand(node, true)
+            } },
             {
                 class: "", text: "Capture", disabled: false, callback: () => {
                     var api = new window.API.CapturesApi(window.App.apiConf)
@@ -333,18 +368,21 @@ var DefaultConfig = {
     },
     weightTitles: function () {
         return {
-            [WEIGHT_NONE]: "Not classified",
-            [WEIGHT_FABRIC]: "Fabric",
-            [WEIGHT_PHYSICAL]: "Physical",
-            [WEIGHT_BRIDGES]: "Bridges",
-            [WEIGHT_PORTS]: "Ports",
-            [WEIGHT_VIRTUAL]: "Virtual",
-            [WEIGHT_NAMESPACES]: "Namespaces",
-            [WEIGHT_VMS]: "VMs",
-            [WEIGHT_K8S_FEDERATION]: "Federations",
-            [WEIGHT_K8S_CLUSTER]: "Clusters",
-            [WEIGHT_K8S_NODE]: "Nodes",
-            [WEIGHT_K8S_POD]: "Pods"
+            "Not classified": WEIGHT_NONE,
+            "Fabric": WEIGHT_FABRIC,
+            "Physical": WEIGHT_PHYSICAL,
+            "Application": WEIGHT_APPLICATION,
+            "Component": WEIGHT_COMPONENT,
+            "Instance": WEIGHT_INSTANCE,
+            "Bridges": WEIGHT_BRIDGES,
+            "Ports": WEIGHT_PORTS,
+            "Virtual": WEIGHT_VIRTUAL,
+            "Namespaces": WEIGHT_NAMESPACES,
+            "VMs": WEIGHT_VMS,
+            "Federations": WEIGHT_K8S_FEDERATION,
+            "Clusters": WEIGHT_K8S_CLUSTER,
+            "Nodes": WEIGHT_K8S_NODE,
+            "Pods": WEIGHT_K8S_POD
         }
     },
     suggestions: [

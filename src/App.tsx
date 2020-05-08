@@ -452,9 +452,9 @@ class App extends React.Component<Props, State> {
   weightTitles(): Map<number, string> {
     var map = new Map<number, string>()
     var titles = this.props.config.weightTitles()
-    Object.keys(titles).forEach(key => {
-      var index = parseInt(key)
-      map.set(index, titles[index]);
+    Object.keys(titles).forEach(title => {
+      var index = titles[title]
+      map.set(index, title);
     })
     return map
   }

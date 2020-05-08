@@ -67,9 +67,14 @@ export class Node {
         var weight = typeof this.weight === "function" ? this.weight(this) : this.weight
         var parentWeight = this.parent ? this.parent.getWeight() : 0
 
+      /* Queremos poder pintar hijos con weight inferior
+       * para poder pintar relaciones de abajo arriba
+       * Solo con este cambio me sigue pintando las relaciones debajo, pero el row
+       * lo crea a la misma altura, rompiendo la visualización (se superponen los títulos)
         if (!weight || weight < parentWeight) {
             weight = parentWeight
         }
+       */
 
         return weight
     }
@@ -851,11 +856,15 @@ export class Topology extends React.Component<Props, {}> {
         node.children.forEach((child: Node) => this.collapse(child))
     }
 
-    expand(node: Node) {
+    expand(node: Node, full=false) {
         if (node.state.expanded) {
             this.collapse(node)
         } else {
             node.state.expanded = true
+        }
+
+        if (full) {
+          node.children.map(c => this.expand(c))
         }
 
         // invalidate link cache
