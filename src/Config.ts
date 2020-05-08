@@ -262,13 +262,12 @@ var DefaultConfig = {
         ]
     },
     nodeTags: function (data) {
-        if (data.Manager && data.Manager === "k8s") {
-            return ["kubernetes"]
-        } else {
-            return ["infrastructure"]
+        if (data.Tags && Array.isArray(data.Tags)) {
+          return [...data.Tags, "All"]
         }
+        return ["All"]
     },
-    defaultNodeTag: "infrastructure",
+    defaultNodeTag: "All",
     nodeTabTitle: function (node: Node): string {
         return node.data.Name.substring(0, 8)
     },
