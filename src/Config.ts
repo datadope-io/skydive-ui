@@ -4,7 +4,8 @@ import Tools from './Tools'
 const WEIGHT_NONE = 0
 const WEIGHT_APPLICATION = 1
 const WEIGHT_COMPONENT = 2
-const WEIGHT_INSTANCE = 3
+const WEIGHT_NODE = 3
+const WEIGHT_INSTANCE = 4
 const WEIGHT_FABRIC = 10
 const WEIGHT_PHYSICAL = 13
 const WEIGHT_BRIDGES = 14
@@ -374,6 +375,7 @@ var DefaultConfig = {
             "Application": WEIGHT_APPLICATION,
             "Component": WEIGHT_COMPONENT,
             "Instance": WEIGHT_INSTANCE,
+            "Node": WEIGHT_NODE,
             "Bridges": WEIGHT_BRIDGES,
             "Ports": WEIGHT_PORTS,
             "Virtual": WEIGHT_VIRTUAL,

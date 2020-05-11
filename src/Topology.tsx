@@ -241,6 +241,7 @@ export class Topology extends React.Component<Props, {}> {
         super(props)
 
         this.nodeWidth = 150
+        // Height of each level
         this.nodeHeight = 280
 
         if (this.props.weightTitles) {
@@ -2384,6 +2385,9 @@ export class Topology extends React.Component<Props, {}> {
         var normRoot = this.normalizeTree(this.root)
 
         var root = hierarchy(normRoot)
+
+        // https://github.com/d3/d3-hierarchy/blob/master/README.md#tree
+        // Set x,y in each node, in an arbitrary coordinate system
         this.tree(root)
 
         // update d3nodes cache
