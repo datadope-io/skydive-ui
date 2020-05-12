@@ -182,6 +182,7 @@ interface Group {
 
 export interface NodeAttrs {
   name: string;
+  visible_name?: string;
   classes: Array<string>;
   icon: string;
   iconClass: string;
@@ -263,8 +264,8 @@ export class Topology extends React.Component<Props, {}> {
   constructor(props: Props) {
     super(props);
 
+    // Distance between nodes
     this.nodeWidth = 150;
-    // Height of each level
     this.nodeHeight = 280;
 
     if (this.props.weightTitles) {
@@ -2389,7 +2390,14 @@ export class Topology extends React.Component<Props, {}> {
       .attr("y", 85)
       // NOTE(safchain) maybe this should be done for all the nodes
       // has the name can be updated
-      .text((d: D3Node) => this.props.nodeAttrs(d.data.wrapped).name)
+      .text((d: D3Node) => {
+
+        if (this.props.nodeAttrs(d.data.wrapped).visible_name) {
+          return this.props.nodeAttrs(d.data.wrapped).visible_name
+        }
+
+        return this.props.nodeAttrs(d.data.wrapped).name
+      })
       .attr("pointer-events", "none")
       .call(wrapText, 1.1, this.nodeWidth - 10);
 
@@ -2686,12 +2694,19 @@ export class Topology extends React.Component<Props, {}> {
   renderTree() {
     var self = this;
 
+    // Use the "weight" property of each node to create intermediate levels 
+    // Two siblings with different weight will be converted to one of the siblings going a level deeper
     var normRoot = this.normalizeTree(this.root);
 
+    // https://github.com/d3/d3-hierarchy/blob/master/README.md#hierarchy
+    // From a hierachical data ({x, children: [{y, children: []},{}]} return
+    // a similar structure where each node have depth (level in three) and height (to differenciate
+    // between siblings)
     var root = hierarchy(normRoot);
 
     // https://github.com/d3/d3-hierarchy/blob/master/README.md#tree
-    // Set x,y in each node, in an arbitrary coordinate system
+    // Set x,y in each node, in an arbitrary coordinate system, based on the sizes passed at the
+    // tree inizialitation (in the constructor)
     this.tree(root);
 
     // update d3nodes cache

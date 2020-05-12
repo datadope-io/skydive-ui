@@ -2,21 +2,27 @@ import { Node, Link, NodeAttrs } from "./Topology";
 import Tools from "./Tools";
 
 const WEIGHT_NONE = 0;
-const WEIGHT_APPLICATION = 1;
-const WEIGHT_COMPONENT = 2;
-const WEIGHT_NODE = 3;
-const WEIGHT_INSTANCE = 4;
-const WEIGHT_FABRIC = 10;
-const WEIGHT_PHYSICAL = 13;
-const WEIGHT_BRIDGES = 14;
-const WEIGHT_PORTS = 15;
-const WEIGHT_VIRTUAL = 17;
-const WEIGHT_NAMESPACES = 18;
-const WEIGHT_VMS = 19;
-const WEIGHT_K8S_FEDERATION = 100;
-const WEIGHT_K8S_CLUSTER = 101;
-const WEIGHT_K8S_NODE = 102;
-const WEIGHT_K8S_POD = 103;
+const WEIGHT_SERVICE = 10;
+const WEIGHT_COMPONENT = 20;
+const WEIGHT_INSTANCE = 40;
+const WEIGHT_ENDPOINT = 50;
+const WEIGHT_SOFTWARE = 60;
+
+const WEIGHT_FABRIC = 100;
+const WEIGHT_PHYSICAL = 130;
+const WEIGHT_BRIDGES = 140;
+const WEIGHT_PORTS = 150;
+const WEIGHT_VIRTUAL = 170;
+const WEIGHT_NAMESPACES = 180;
+
+const WEIGHT_VMS = 190;
+const WEIGHT_SERVER = 200;
+const WEIGHT_DATACENTER = 300;
+
+const WEIGHT_K8S_FEDERATION = 1000;
+const WEIGHT_K8S_CLUSTER = 1010;
+const WEIGHT_K8S_NODE = 1020;
+const WEIGHT_K8S_POD = 1030;
 
 var DefaultConfig = {
   subTitle: "",
@@ -50,6 +56,9 @@ var DefaultConfig = {
       iconClass: "",
       weight: 0,
       badges: [],
+      // Show this one if defined
+      visible_name: node.data.VisibleName,
+
     };
 
     return attrs;
@@ -413,15 +422,18 @@ var DefaultConfig = {
       "Not classified": WEIGHT_NONE,
       Fabric: WEIGHT_FABRIC,
       Physical: WEIGHT_PHYSICAL,
-      Application: WEIGHT_APPLICATION,
+      Service: WEIGHT_SERVICE,
       Component: WEIGHT_COMPONENT,
       Instance: WEIGHT_INSTANCE,
-      Node: WEIGHT_NODE,
+      Endpoint: WEIGHT_ENDPOINT,
+      Software: WEIGHT_SOFTWARE,
       Bridges: WEIGHT_BRIDGES,
       Ports: WEIGHT_PORTS,
       Virtual: WEIGHT_VIRTUAL,
       Namespaces: WEIGHT_NAMESPACES,
       VMs: WEIGHT_VMS,
+      Server: WEIGHT_SERVER,
+      Datacenter: WEIGHT_SERVER,
       Federations: WEIGHT_K8S_FEDERATION,
       Clusters: WEIGHT_K8S_CLUSTER,
       Nodes: WEIGHT_K8S_NODE,
