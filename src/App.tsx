@@ -925,6 +925,7 @@ class App extends React.Component<Props, State> {
               onNodeClicked={this.props.config.nodeClicked.bind(this.props.config)}
               onNodeDblClicked={this.props.config.nodeDblClicked.bind(this.props.config)}
               defaultLinkTagMode={this.props.config.defaultLinkTagMode.bind(this.props.config)}
+              alarmLevel={this.props.config.alarmLevel.bind(this)}
             />
           </Container>
           <Container className={classes.rightPanel}>

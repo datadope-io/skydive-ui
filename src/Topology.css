@@ -94,6 +94,18 @@ svg {
     stroke: #5097c7;
 }
 
+.node-circle-warning {
+    fill: #ffffff00;
+    stroke-width: 3;
+    stroke: #c6b200;
+}
+
+.node-circle-critical {
+    fill: #ffffff00;
+    stroke-width: 3;
+    stroke: #f50057;
+}
+
 .node-overlay {
     fill: #ffeb3b;
 }

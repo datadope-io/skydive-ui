@@ -214,6 +214,7 @@ interface Props {
   onNodeClicked: (node: Node) => void;
   onNodeDblClicked: (node: Node) => void;
   defaultLinkTagMode?: (tag: string) => LinkTagState;
+  alarmLevel: (node: Node) => string;
 }
 
 /**
@@ -2274,9 +2275,20 @@ export class Topology extends React.Component<Props, {}> {
     highlight.append("circle").attr("r", hexSize + 16);
     highlight.append("text").text("\uf3c5").attr("dy", -60);
 
+    // Change circle color if the node has metadata.alarms
+    // Red if any of the alarms cross certain threshold
+    // Yellow/gold otherwise
     nodeEnter
       .append("circle")
-      .attr("class", "node-circle")
+      .attr("class", (d: D3Node) => {
+        const level = this.props.alarmLevel(d.data.wrapped)
+        if (level === "critical") {
+          return "node-circle-critical";
+        } else if (level === "warning") {
+          return "node-circle-warning";
+        }
+        return "node-circle";
+      })
       .attr("r", hexSize + 16);
 
     nodeEnter
@@ -2391,12 +2403,11 @@ export class Topology extends React.Component<Props, {}> {
       // NOTE(safchain) maybe this should be done for all the nodes
       // has the name can be updated
       .text((d: D3Node) => {
-
         if (this.props.nodeAttrs(d.data.wrapped).visible_name) {
-          return this.props.nodeAttrs(d.data.wrapped).visible_name
+          return this.props.nodeAttrs(d.data.wrapped).visible_name;
         }
 
-        return this.props.nodeAttrs(d.data.wrapped).name
+        return this.props.nodeAttrs(d.data.wrapped).name;
       })
       .attr("pointer-events", "none")
       .call(wrapText, 1.1, this.nodeWidth - 10);
@@ -2694,7 +2705,7 @@ export class Topology extends React.Component<Props, {}> {
   renderTree() {
     var self = this;
 
-    // Use the "weight" property of each node to create intermediate levels 
+    // Use the "weight" property of each node to create intermediate levels
     // Two siblings with different weight will be converted to one of the siblings going a level deeper
     var normRoot = this.normalizeTree(this.root);
 

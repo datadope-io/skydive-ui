@@ -164,6 +164,7 @@ var DefaultConfig = {
     Application: "\uf1e0",
   },
   // Map Metadata.Badges[] string value to different icons
+  // https://fontawesome.com/cheatsheet
   badgeMap: {
     Broker: "\uf084",
     Cluster: "\uf6ff",
@@ -174,15 +175,54 @@ var DefaultConfig = {
 
     // Assign attributes based on Type, Icon and Badges
     const weight = this.weightTitles();
+
     if (weight.hasOwnProperty(node.data.Type)) {
       attrs.weight = weight[node.data.Type];
+
       // Get icon or show a default one
       attrs.icon = this.iconMap[node.data.Icon];
+
       if (node.data.Badges) {
         attrs.badges = node.data.Badges.map(
           (b) => this.badgeMap[b] || "\uf03d"
         );
       }
+
+      // Add a alarm badge if any children have an alarm
+      let alarm_warning = false;
+      let alarm_critical = false;
+
+      // Analyze node and children to get the most critical level.
+      // Return boolean if critical has been found, to stop the analysis
+      const DFSAlarmLevel  = (node: Node): boolean => {
+        // First, analyze the node
+        const nodeAlarmLevel = this.alarmLevel(node)
+        if (nodeAlarmLevel === "critical") {
+          alarm_critical = true
+          return true
+        } else if (nodeAlarmLevel === "warning") {
+          alarm_warning = true
+        }
+
+        // If not critical found, analyze the children
+        for (let index = 0; index < node.children.length; index++) {
+          const child = node.children[index];
+          if (DFSAlarmLevel(child)) {
+            return true
+          }
+        }
+        return false
+      }
+
+      DFSAlarmLevel(node)
+
+      // broken hearth if critical, exclamation mark if warning
+      if (alarm_critical) {
+        attrs.badges = [...attrs.badges, "\uf7a9"]
+      } else if (alarm_warning) {
+        attrs.badges = [...attrs.badges, "\uf12a"]
+      }
+
       // Reference of others possible parameters
       //attrs.href = "assets/icons/k8s.png"
       //attrs.iconClass = "font-brands"
@@ -460,6 +500,7 @@ var DefaultConfig = {
               "SubType",
               "VisibleName",
               "Tags",
+              "Alarms",
               "MAC",
               "Driver",
               "State",
@@ -666,6 +707,30 @@ var DefaultConfig = {
   defaultLinkTagMode: function (tag: string): number {
     return 2;
   },
+  // Analyze a Node to decide if it is in critical/warning/ok state
+  // TODO move critical/warning/ok to enum?
+  alarmLevel: function (node: Node): string {
+    // Level to decide if an alarm is critical (from a suggested scale from 0 to 10)
+    // Equal or greather than this level
+    const alarmCriticalThreshold = 7
+
+    if (
+      node.data.Alarms &&
+      Array.isArray(node.data.Alarms) &&
+      node.data.Alarms.length > 0
+    )
+    {
+      for (let index = 0; index < node.data.Alarms.length; index++) {
+        const alarm = node.data.Alarms[index];
+        if (alarm.level && alarm.level >= alarmCriticalThreshold) {
+          return "critical";
+        }
+      }
+      return "warning"
+    }
+    return "ok"
+  }
+
 };
 
 export default DefaultConfig;
