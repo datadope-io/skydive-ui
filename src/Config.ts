@@ -58,7 +58,6 @@ var DefaultConfig = {
       badges: [],
       // Show this one if defined
       visible_name: node.data.VisibleName,
-
     };
 
     return attrs;
@@ -455,7 +454,16 @@ var DefaultConfig = {
           case "host":
             return ["Name"];
           default:
-            return ["Name", "Type", "MAC", "Driver", "State"];
+            return [
+              "Name",
+              "Type",
+              "SubType",
+              "VisibleName",
+              "Tags",
+              "MAC",
+              "Driver",
+              "State",
+            ];
         }
       },
     },

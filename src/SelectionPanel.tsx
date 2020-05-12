@@ -229,6 +229,9 @@ class SelectionPanel extends React.Component<Props, State> {
               var data = el.data
               var exclude = new Array<any>()
 
+              // Remove empty arrays
+              data = this.removeEmptyArrays(data)
+
               if (entry.field) {
                 data = dataByPath(el.data, entry.field)
               } else if (entry.data) {
@@ -261,6 +264,23 @@ class SelectionPanel extends React.Component<Props, State> {
         </React.Fragment>
       )
     })
+  }
+
+  // Remove keys which values have an empty array
+  removeEmptyArrays(obj: Object) {
+    let result = {};
+
+    Object.entries(obj).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        if (value.length > 0) {
+          result[key] = value
+        }
+      } else {
+        result[key] = value
+      }
+    })
+
+    return result;
   }
 
   onTabChange(event: React.ChangeEvent<{}>, value: number) {
