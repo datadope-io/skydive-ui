@@ -335,8 +335,15 @@ var DefaultConfig = {
         text: "Expand all",
         disabled: false,
         callback: () => {
-          console.log("expand all");
           window.App.tc.expand(node, true);
+        },
+      },
+      {
+        class: "",
+        text: "Expand alarm",
+        disabled: false,
+        callback: () => {
+          window.App.tc.expand_alarm(node);
         },
       },
       {

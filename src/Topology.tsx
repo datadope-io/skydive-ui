@@ -986,6 +986,37 @@ export class Topology extends React.Component<Props, {}> {
     this.renderTree();
   }
 
+  // expand all the child nodes who have an alarm or have children
+  // who have an alarm
+  // The return value defines if this node, or any children, have an active alarm
+  expand_alarm(node: Node): boolean {
+    let expanded = false
+
+    // Navigate DFS all the children nodes, and expand this node
+    // if any of them have an alarm
+    node.children.map((c) => {
+      // If the child does not have alarms but a previous one had, keep the alarmed state
+      expanded = this.expand_alarm(c) || expanded
+    });
+
+    const alarmLevel = this.props.alarmLevel(node)
+    if (alarmLevel !== "ok") {
+      expanded = true
+    }
+
+    node.state.expanded = expanded
+
+    // invalidate link cache
+    this.visibleLinksCache = undefined;
+
+    // invalidate the whole topology rendering
+    this.invalidated = true;
+
+    this.renderTree();
+
+    return expanded
+  }
+
   private hexagon(d: D3Node, size: number) {
     var s32 = Math.sqrt(3) / 2;
 
