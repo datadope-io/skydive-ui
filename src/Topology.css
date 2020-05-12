@@ -141,6 +141,31 @@ svg {
     fill: #6975a9;
 }
 
+.node-badge-warning rect {
+    fill: #c6b200;
+}
+
+.node-badge-critical rect {
+    fill: #f50057;
+}
+
+/* TODO merge this node-badge text into one */
+.node-badge-critical text {
+    font-size: 16px;
+    text-anchor: middle;
+    font-family: 'Font Awesome 5 Free' !important;
+    fill: #fff;
+    font-weight: 900;
+}
+
+.node-badge-warning text {
+    font-size: 16px;
+    text-anchor: middle;
+    font-family: 'Font Awesome 5 Free' !important;
+    fill: #fff;
+    font-weight: 900;
+}
+
 .node-badge text {
     font-size: 16px;
     text-anchor: middle;

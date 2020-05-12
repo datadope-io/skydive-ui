@@ -2448,7 +2448,17 @@ export class Topology extends React.Component<Props, {}> {
         .selectAll("g.node-badge")
         .data(self.props.nodeAttrs(d.data.wrapped).badges);
 
-      var badgeEnter = badge.enter().append("g").attr("class", "node-badge");
+      var badgeEnter = badge.enter()
+        .append("g")
+        .attr("class", (d: String) => {
+          console.log("badge XXX", d)
+          if (d === "\uf7a9") {
+            return "node-badge-critical"
+          } else if (d === "\uf12a") {
+            return "node-badge-warning"
+          }
+          return "node-badge"
+        });
       badge.exit().remove();
 
       badgeEnter
