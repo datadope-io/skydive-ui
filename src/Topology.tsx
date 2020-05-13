@@ -949,6 +949,9 @@ export class Topology extends React.Component<Props, {}> {
       return null;
     }
 
+    // Only show nodes related to the service nodes
+    tree = this.onlyShowServicesTree(tree);
+
     for (let weight of this.weights) {
       let cache = {
         chains: new Map<string, { first: NodeWrapper; last: NodeWrapper }>(),
@@ -957,6 +960,106 @@ export class Topology extends React.Component<Props, {}> {
     }
 
     return tree;
+  }
+
+  // Get the id of nodes visible below this node
+  private getActiveNodes(node: NodeWrapper): Array<string> {
+    let active = [node.id];
+
+    // Add pseudochildren
+    active.push(...this.getPseudoNodes(node.wrapped))
+
+    // Add children
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i];
+      active.push(...this.getActiveNodes(child));
+    }
+    return active;
+  }
+
+  // Get id of nodes connected by ownership_X relationships
+  private getPseudoNodes(node: Node): Array<string> {
+    let active = new Array();
+
+    this.links.forEach((link) => {
+      if (
+        link.source.id === node.id &&
+        link.data.RelationType.substring(0, 10) === "ownership_"
+      ) {
+        active.push(link.target.id);
+        // Add links of the links
+        active.push(...this.getPseudoNodes(link.target))
+      }
+    });
+
+    return active
+  }
+
+  // Get parent nodes ids with relationship type beings with "ownership_"
+  // TODO put this magic value in the config
+  private getPseudoparentIds(node: Node): Array<string> {
+    let parents = new Array();
+
+    this.links.forEach((link) => {
+      if (
+        link.target.id === node.id &&
+        link.data.RelationType.substring(0, 10) === "ownership_"
+      ) {
+        parents.push(link.source.id);
+      }
+    });
+
+    return parents;
+  }
+
+  // Like getPseudoparentIds but using also all the childresn below this node
+  private getPseudoparentIdsRecursive(node: NodeWrapper): Array<string> {
+    let parents = this.getPseudoparentIds(node.wrapped)
+
+    // Add children
+    for (let i = 0; i < node.wrapped.children.length; i++) {
+      const child = node.wrapped.children[i];
+      parents.push(...this.getPseudoparentIds(child))
+    }
+
+    return parents;
+  }
+
+  // Only show the nodes below Service nodes.
+  // Nodes outside of this tree will be shown if they have a child-parent
+  // relationship with a node of the Services tree that is being currently
+  // displayed
+  // TODO groups are not shown correctly
+  private onlyShowServicesTree(node: NodeWrapper): NodeWrapper {
+    // Get the list of Service children nodes currently being shown
+    let active_nodes = new Array();
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i];
+      if (child.wrapped.data.Type === "Service") { // TODO remove magic value
+        active_nodes.push(...this.getActiveNodes(child))
+      }
+    }
+
+    // Check if any of the root childs wanted to be shown have a link with an
+    // active node
+    // Service nodes are always shown
+    // Loop inversed to remove elements without disruption
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      const child = node.children[i];
+      if (child.wrapped.data.Type !== "Service") { // TODO remove magic value
+        //const parents = this.getPseudoparentIds(child);
+        // Get pseudoparents from this node and its childs
+        const parents = this.getPseudoparentIdsRecursive(child);
+        // Check if some parent is in the active nodes
+        if (
+          parents.filter((value) => active_nodes.includes(value)).length > 0
+        ) {
+          continue;
+        }
+        node.children.splice(i, 1);
+      }
+    }
+    return node;
   }
 
   private collapse(node: Node) {
@@ -990,21 +1093,21 @@ export class Topology extends React.Component<Props, {}> {
   // who have an alarm
   // The return value defines if this node, or any children, have an active alarm
   expand_alarm(node: Node): boolean {
-    let expanded = false
+    let expanded = false;
 
     // Navigate DFS all the children nodes, and expand this node
     // if any of them have an alarm
     node.children.map((c) => {
       // If the child does not have alarms but a previous one had, keep the alarmed state
-      expanded = this.expand_alarm(c) || expanded
+      expanded = this.expand_alarm(c) || expanded;
     });
 
-    const alarmLevel = this.props.alarmLevel(node)
+    const alarmLevel = this.props.alarmLevel(node);
     if (alarmLevel !== "ok") {
-      expanded = true
+      expanded = true;
     }
 
-    node.state.expanded = expanded
+    node.state.expanded = expanded;
 
     // invalidate link cache
     this.visibleLinksCache = undefined;
@@ -1014,7 +1117,7 @@ export class Topology extends React.Component<Props, {}> {
 
     this.renderTree();
 
-    return expanded
+    return expanded;
   }
 
   private hexagon(d: D3Node, size: number) {
@@ -1041,7 +1144,7 @@ export class Topology extends React.Component<Props, {}> {
 
     var links = new Array<Link>();
 
-    var findVisible = (node: Node | null) => {
+    var findVisible = (node: Node | null, pseudo_ownership: boolean) => {
       while (node) {
         if (this.d3nodes.get(node.id)) {
           return node;
@@ -1057,6 +1160,11 @@ export class Topology extends React.Component<Props, {}> {
           }
         }
 
+        // ownership_X relationships should be only shown between end nodes or groups
+        if (pseudo_ownership) {
+          return
+        }
+
         node = node.parent;
       }
     };
@@ -1065,8 +1173,9 @@ export class Topology extends React.Component<Props, {}> {
     var tagPresent = new Map<string, boolean>();
 
     this.links.forEach((link: Link) => {
-      var source = findVisible(link.source);
-      var target = findVisible(link.target);
+      // TODO convert the RelationType check into a function
+      var source = findVisible(link.source, link.data.RelationType.slice(0,10) === "ownership_");
+      var target = findVisible(link.target, link.data.RelationType.slice(0,10) === "ownership_");
 
       if (
         source &&
@@ -2312,7 +2421,7 @@ export class Topology extends React.Component<Props, {}> {
     nodeEnter
       .append("circle")
       .attr("class", (d: D3Node) => {
-        const level = this.props.alarmLevel(d.data.wrapped)
+        const level = this.props.alarmLevel(d.data.wrapped);
         if (level === "critical") {
           return "node-circle-critical";
         } else if (level === "warning") {
@@ -2448,16 +2557,16 @@ export class Topology extends React.Component<Props, {}> {
         .selectAll("g.node-badge")
         .data(self.props.nodeAttrs(d.data.wrapped).badges);
 
-      var badgeEnter = badge.enter()
+      var badgeEnter = badge
+        .enter()
         .append("g")
         .attr("class", (d: String) => {
-          console.log("badge XXX", d)
           if (d === "\uf7a9") {
-            return "node-badge-critical"
+            return "node-badge-critical";
           } else if (d === "\uf12a") {
-            return "node-badge-warning"
+            return "node-badge-warning";
           }
-          return "node-badge"
+          return "node-badge";
         });
       badge.exit().remove();
 
@@ -2768,9 +2877,11 @@ export class Topology extends React.Component<Props, {}> {
     });
 
     this.renderLevels();
+    // Draw ownership links
     this.renderHieraLinks(root);
     this.renderGroups();
     this.renderNodes(root);
+    // Draw other link types
     this.renderLinks();
 
     this.invalidated = false;

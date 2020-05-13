@@ -17,10 +17,8 @@ const WEIGHT_NAMESPACES = 180;
 
 const WEIGHT_VMS = 190;
 const WEIGHT_SERVER = 200;
-const WEIGHT_COMMUNICATIONS = 500;
-// TODO: Datacenter should be drawn after communications, but ownership realtion is always drawn with the parent on top.
-// Until we can draw parent-child realtionship inverted, communications should have more weight
-const WEIGHT_DATACENTER = 400;
+const WEIGHT_COMMUNICATIONS = 400;
+const WEIGHT_DATACENTER = 500;
 
 const WEIGHT_K8S_FEDERATION = 1000;
 const WEIGHT_K8S_CLUSTER = 1010;
@@ -715,9 +713,16 @@ var DefaultConfig = {
       icon: "\uf018",
     },
   ],
+
+  // Default selector for the link menu
   defaultLinkTagMode: function (tag: string): number {
+    // TODO convert the RelationType check into a function
+    if (tag.slice(0,10) === "ownership_") {
+      return 3
+    }
     return 2;
   },
+
   // Analyze a Node to decide if it is in critical/warning/ok state
   // TODO move critical/warning/ok to enum?
   alarmLevel: function (node: Node): string {
