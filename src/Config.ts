@@ -17,7 +17,10 @@ const WEIGHT_NAMESPACES = 180;
 
 const WEIGHT_VMS = 190;
 const WEIGHT_SERVER = 200;
-const WEIGHT_DATACENTER = 300;
+const WEIGHT_COMMUNICATIONS = 500;
+// TODO: Datacenter should be drawn after communications, but ownership realtion is always drawn with the parent on top.
+// Until we can draw parent-child realtionship inverted, communications should have more weight
+const WEIGHT_DATACENTER = 400;
 
 const WEIGHT_K8S_FEDERATION = 1000;
 const WEIGHT_K8S_CLUSTER = 1010;
@@ -479,7 +482,8 @@ var DefaultConfig = {
       Namespaces: WEIGHT_NAMESPACES,
       VMs: WEIGHT_VMS,
       Server: WEIGHT_SERVER,
-      Datacenter: WEIGHT_SERVER,
+      Communications: WEIGHT_COMMUNICATIONS,
+      Datacenter: WEIGHT_DATACENTER,
       Federations: WEIGHT_K8S_FEDERATION,
       Clusters: WEIGHT_K8S_CLUSTER,
       Nodes: WEIGHT_K8S_NODE,
