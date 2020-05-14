@@ -246,7 +246,8 @@ class SelectionPanel extends React.Component<Props, State> {
                 }
               })
 
-              if (data) {
+              // Render if it has data and it not an array, or it is an array and have elements
+              if ((data && !Array.isArray(data)) || (Array.isArray(data) && data.length > 0)) {
                 var title = entry.title || entry.field || "General"
                 var sortKeys = entry.sortKeys ? entry.sortKeys(data) : null
                 var filterKeys = entry.filterKeys ? entry.filterKeys(data) : null

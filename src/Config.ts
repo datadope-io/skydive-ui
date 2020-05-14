@@ -519,6 +519,11 @@ var DefaultConfig = {
       },
     },
     {
+      field: "Alarms",
+      expanded: false,
+      icon: "\uf0a1",  // bullhorn
+    },
+    {
       field: "Sockets",
       expanded: false,
       icon: "\uf1e6",
