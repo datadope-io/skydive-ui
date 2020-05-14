@@ -180,8 +180,8 @@ var DefaultConfig = {
     if (weight.hasOwnProperty(node.data.Type)) {
       attrs.weight = weight[node.data.Type];
 
-      // Get icon or show a default one
-      attrs.icon = this.iconMap[node.data.Icon];
+      // Use a predefined icon, or the \u code directly
+      attrs.icon = this.iconMap[node.data.Icon] || node.data.Icon;
 
       if (node.data.Badges) {
         attrs.badges = node.data.Badges.map(
@@ -217,11 +217,12 @@ var DefaultConfig = {
 
       DFSAlarmLevel(node)
 
-      // broken hearth if critical, exclamation mark if warning
+      // skull-crossbones hearth if critical, exclamation mark if warning
+      // TODO use a config parameter for the icons and pass them to Topology to draw in red/yellow
       if (alarm_critical) {
-        attrs.badges = [...attrs.badges, "\uf7a9"]
+        attrs.badges = [...attrs.badges, "\uf714"]  // skull-crossbones
       } else if (alarm_warning) {
-        attrs.badges = [...attrs.badges, "\uf12a"]
+        attrs.badges = [...attrs.badges, "\uf071"]  // exclamation-triangle
       }
 
       // Reference of others possible parameters

@@ -2619,13 +2619,14 @@ export class Topology extends React.Component<Props, {}> {
         .selectAll("g.node-badge")
         .data(self.props.nodeAttrs(d.data.wrapped).badges);
 
+      // TODO use a config parameter for the icons to draw in red/yellow
       var badgeEnter = badge
         .enter()
         .append("g")
         .attr("class", (d: String) => {
-          if (d === "\uf7a9") {
+          if (d === "\uf714") {
             return "node-badge-critical";
-          } else if (d === "\uf12a") {
+          } else if (d === "\uf071") {
             return "node-badge-warning";
           }
           return "node-badge";
