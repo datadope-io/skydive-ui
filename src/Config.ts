@@ -30,9 +30,10 @@ var DefaultConfig = {
   filters: [
     {
       id: "default",
-      label: "Default",
+      label: "Now",
       gremlin: "",
     },
+    /* Leave as reference
     {
       id: "namespaces",
       label: "Namespaces",
@@ -41,6 +42,7 @@ var DefaultConfig = {
         ".out().Has('Type', 'netns').descendants().as('netns')" +
         ".select('host', 'netns').SubGraph()",
     },
+    */
   ],
   defaultFilter: "default",
   _newAttrs: function (node: Node): NodeAttrs {

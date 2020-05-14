@@ -49,6 +49,11 @@ import { withRouter } from 'react-router-dom'
 import Badge from '@material-ui/core/Badge'
 import ListIcon from '@material-ui/icons/List'
 import Button from '@material-ui/core/Button'
+import LuxonUtils from '@date-io/luxon';
+import {
+  DateTimePicker,
+  MuiPickersUtilsProvider,
+} from '@material-ui/pickers';
 
 import { styles } from './AppStyles'
 import { Topology, Node, NodeAttrs, LinkAttrs, LinkTagState, Link } from './Topology'
@@ -102,6 +107,7 @@ interface State {
   anchorEl: Map<string, null | HTMLElement>
   isSelectionOpen: boolean
   wsContext: WSContext
+  selectedDate: Date
 }
 
 class App extends React.Component<Props, State> {
@@ -133,7 +139,8 @@ class App extends React.Component<Props, State> {
       suggestions: new Array<string>(),
       anchorEl: new Map<string, null | HTMLElement>(),
       isSelectionOpen: false,
-      wsContext: { GremlinFilter: null }
+      wsContext: { GremlinFilter: null },
+      selectedDate: new Date(),
     }
 
     this.synced = false
@@ -799,198 +806,211 @@ class App extends React.Component<Props, State> {
     const { classes } = this.props
 
     return (
-      <div className={classes.app}>
-        <CssBaseline />
-        {this.staticDataURL === "" &&
-          <Websocket ref={node => this.websocket = node} url={this.subscriberURL()} onOpen={this.onWebSocketOpen.bind(this)}
-            onMessage={this.onWebSocketMessage.bind(this)} onClose={this.onWebSocketClose.bind(this)}
-            reconnectIntervalInMilliSeconds={2500} />
-        }
-        <AppBar position="absolute" className={clsx(classes.appBar, this.state.isNavOpen && classes.appBarShift)}>
-          <Toolbar className={classes.toolbar}>
-            <IconButton
-              edge="start"
-              color="inherit"
-              aria-label="open drawer"
-              onClick={this.openDrawer.bind(this)}
-              className={clsx(classes.menuButton, this.state.isNavOpen && classes.menuButtonHidden)}>
-              <MenuIcon />
-            </IconButton>
-            <Typography component="h1" variant="h6" color="inherit" noWrap className={classes.title}>
-              <img src={Logo} alt="logo" />
-            </Typography>
-            {this.props.config.subTitle &&
-              <Typography className={classes.subTitle} variant="caption">{this.props.config.subTitle}</Typography>
-            }
-            <div className={classes.search}>
-              <AutoCompleteInput placeholder="metadata value" suggestions={this.state.suggestions} onChange={this.onSearchChange.bind(this)} />
-            </div>
-            <div className={classes.grow} />
-            <div>
-              <IconButton
-                aria-controls="menu-selection"
-                aria-haspopup="true"
-                onClick={(event: React.MouseEvent<HTMLElement>) => this.props.selection.length > 0 && this.openMenu("selection", event)}
-                color="inherit">
-                <Badge badgeContent={this.props.selection.length} color="secondary">
-                  <ListIcon />
-                </Badge>
-              </IconButton>
-              <Menu
-                id="menu-selection"
-                anchorEl={this.state.anchorEl.get("selection")}
-                anchorOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                keepMounted
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                open={Boolean(this.state.anchorEl.get("selection"))}
-                onClose={this.closeMenu.bind(this, "selection")}>
-                <MenuItem onClick={() => { this.closeMenu("selection"); this.openSelection() }}>
-                  <ListItemIcon>
-                    <KeyboardArrowDown fontSize="small" />
-                  </ListItemIcon>
-                  <Typography>Show selection</Typography>
-                </MenuItem>
-                <Divider />
-                {this.renderSelectionMenuItem(classes)}
-                <Divider />
-                <MenuItem onClick={() => { this.closeMenu("selection"); this.unselectAll() }}>
-                  <ListItemIcon>
-                    <RemoveShoppingCartIcon fontSize="small" />
-                  </ListItemIcon>
-                  <Typography>Unselect all</Typography>
-                </MenuItem>
-              </Menu>
-              <IconButton
-                aria-label="account of current user"
-                aria-controls="menu-profile"
-                aria-haspopup="true"
-                onClick={this.openMenu.bind(this, "profile")}
-                color="inherit">
-                <AccountCircle />
-              </IconButton>
-              <Menu
-                id="menu-profile"
-                anchorEl={this.state.anchorEl.get("profile")}
-                anchorOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                keepMounted
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                open={Boolean(this.state.anchorEl.get("profile"))}
-                onClose={this.closeMenu.bind(this, "profile")}>
-                <MenuItem onClick={this.logout.bind(this)}>Logout</MenuItem>
-              </Menu>
-            </div>
-          </Toolbar>
-        </AppBar>
-        <Drawer
-          variant="permanent"
-          classes={{
-            paper: clsx(classes.drawerPaper, !this.state.isNavOpen && classes.drawerPaperClose),
-          }}
-          open={this.state.isNavOpen}>
-          <div className={classes.toolbarIcon}>
-            <IconButton onClick={() => this.closeDrawer()}>
-              <ChevronLeftIcon />
-            </IconButton>
-          </div>
-          <Divider />
-          <List>{mainListItems}</List>
-          <Divider />
-          <List>{helpListItems}</List>
-        </Drawer>
-        <main className={classes.content}>
-          <Container maxWidth="xl" className={classes.container}>
-            <Topology className={classes.topology} ref={node => this.tc = node} nodeAttrs={this.nodeAttrs.bind(this)} linkAttrs={this.linkAttrs.bind(this)}
-              onNodeSelected={this.onNodeSelected.bind(this)}
-              sortNodesFnc={this.sortNodesFnc.bind(this)}
-              onShowNodeContextMenu={this.onShowNodeContextMenu.bind(this)}
-              weightTitles={this.weightTitles()}
-              groupSize={this.props.config.groupSize}
-              groupType={this.props.config.groupType.bind(this.props.config)}
-              groupName={this.props.config.groupName.bind(this.props.config)}
-              onClick={this.onTopologyClick.bind(this)}
-              onLinkSelected={this.onLinkSelected.bind(this)}
-              onLinkTagChange={this.onLinkTagChange.bind(this)}
-              onNodeClicked={this.props.config.nodeClicked.bind(this.props.config)}
-              onNodeDblClicked={this.props.config.nodeDblClicked.bind(this.props.config)}
-              defaultLinkTagMode={this.props.config.defaultLinkTagMode.bind(this.props.config)}
-              alarmLevel={this.props.config.alarmLevel.bind(this)}
-            />
-          </Container>
-          <Container className={classes.rightPanel}>
-            <Paper className={clsx(classes.rightPanelPaper, (!this.props.selection.length || !this.state.isSelectionOpen) && classes.rightPanelPaperClose)}
-              square={true}>
-              <SelectionPanel onLocation={this.onSelectionLocation.bind(this)} onClose={this.onSelectionClose.bind(this)} />
-            </Paper>
-          </Container>
-          <Container className={classes.nodeTagsPanel}>
-            {Array.from(this.state.nodeTagStates.keys()).sort((a, b) => {
-              if (a === this.props.config.defaultNodeTag) {
-                return -1
-              } else if (b === this.props.config.defaultNodeTag) {
-                return 1
-              }
-              return 0
-            }).map((tag) => {
-              // TODO remove magic word (_always)
-              if (tag === "_always") {
-                return null
-              }
-
-              return (
-                <Fab key={tag} variant="extended" aria-label="delete" size="small"
-                  color={this.state.nodeTagStates.get(tag) ? "primary" : "default"}
-                  className={classes.nodeTagsFab}
-                  onClick={this.activeNodeTag.bind(this, tag)}>
-                  {tag}
-                </Fab>
-              )
-            })}
-          </Container>
+      <MuiPickersUtilsProvider utils={LuxonUtils}>
+        <div className={classes.app}>
+          <CssBaseline />
           {this.staticDataURL === "" &&
-            <Container className={classes.filtersPanel}>
-              {this.props.config.filters.map((filter, i) => (
-                <Button variant="contained" key={i} aria-label="delete" size="small"
-                  color={this.state.wsContext.GremlinFilter === filter.gremlin ? "primary" : "default"}
-                  className={classes.filtersFab}
-                  onClick={() => { this.setGremlinFilter(filter.gremlin) }}>
-                  {filter.label}
-                </Button>
-              ))}
-            </Container>
+            <Websocket ref={node => this.websocket = node} url={this.subscriberURL()} onOpen={this.onWebSocketOpen.bind(this)}
+              onMessage={this.onWebSocketMessage.bind(this)} onClose={this.onWebSocketClose.bind(this)}
+              reconnectIntervalInMilliSeconds={2500} />
           }
-          {this.state.linkTagStates.size !== 0 &&
-            <Container className={classes.linkTagsPanel}>
-              <Paper className={classes.linkTagsPanelPaper}>
-                <Typography component="h6" color="primary" gutterBottom>
-                  Link types
-                </Typography>
-                <FormGroup>
-                  {Array.from(this.state.linkTagStates.keys()).map((key) => (
-                    <FormControlLabel key={key} control={
-                      <Checkbox value={key} color="primary" onChange={this.onLinkTagStateChange.bind(this)}
-                        checked={this.state.linkTagStates.get(key) === LinkTagState.Visible}
-                        indeterminate={this.state.linkTagStates.get(key) === LinkTagState.EventBased} />
-                    }
-                      label={key} />
-                  ))}
-                </FormGroup>
+          <AppBar position="absolute" className={clsx(classes.appBar, this.state.isNavOpen && classes.appBarShift)}>
+            <Toolbar className={classes.toolbar}>
+              <IconButton
+                edge="start"
+                color="inherit"
+                aria-label="open drawer"
+                onClick={this.openDrawer.bind(this)}
+                className={clsx(classes.menuButton, this.state.isNavOpen && classes.menuButtonHidden)}>
+                <MenuIcon />
+              </IconButton>
+              <Typography component="h1" variant="h6" color="inherit" noWrap className={classes.title}>
+                <img src={Logo} alt="logo" />
+              </Typography>
+              {this.props.config.subTitle &&
+                <Typography className={classes.subTitle} variant="caption">{this.props.config.subTitle}</Typography>
+              }
+              <div className={classes.search}>
+                <AutoCompleteInput placeholder="metadata value" suggestions={this.state.suggestions} onChange={this.onSearchChange.bind(this)} />
+              </div>
+              <div className={classes.grow} />
+              <div>
+                <IconButton
+                  aria-controls="menu-selection"
+                  aria-haspopup="true"
+                  onClick={(event: React.MouseEvent<HTMLElement>) => this.props.selection.length > 0 && this.openMenu("selection", event)}
+                  color="inherit">
+                  <Badge badgeContent={this.props.selection.length} color="secondary">
+                    <ListIcon />
+                  </Badge>
+                </IconButton>
+                <Menu
+                  id="menu-selection"
+                  anchorEl={this.state.anchorEl.get("selection")}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  keepMounted
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={Boolean(this.state.anchorEl.get("selection"))}
+                  onClose={this.closeMenu.bind(this, "selection")}>
+                  <MenuItem onClick={() => { this.closeMenu("selection"); this.openSelection() }}>
+                    <ListItemIcon>
+                      <KeyboardArrowDown fontSize="small" />
+                    </ListItemIcon>
+                    <Typography>Show selection</Typography>
+                  </MenuItem>
+                  <Divider />
+                  {this.renderSelectionMenuItem(classes)}
+                  <Divider />
+                  <MenuItem onClick={() => { this.closeMenu("selection"); this.unselectAll() }}>
+                    <ListItemIcon>
+                      <RemoveShoppingCartIcon fontSize="small" />
+                    </ListItemIcon>
+                    <Typography>Unselect all</Typography>
+                  </MenuItem>
+                </Menu>
+                <IconButton
+                  aria-label="account of current user"
+                  aria-controls="menu-profile"
+                  aria-haspopup="true"
+                  onClick={this.openMenu.bind(this, "profile")}
+                  color="inherit">
+                  <AccountCircle />
+                </IconButton>
+                <Menu
+                  id="menu-profile"
+                  anchorEl={this.state.anchorEl.get("profile")}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  keepMounted
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={Boolean(this.state.anchorEl.get("profile"))}
+                  onClose={this.closeMenu.bind(this, "profile")}>
+                  <MenuItem onClick={this.logout.bind(this)}>Logout</MenuItem>
+                </Menu>
+              </div>
+            </Toolbar>
+          </AppBar>
+          <Drawer
+            variant="permanent"
+            classes={{
+              paper: clsx(classes.drawerPaper, !this.state.isNavOpen && classes.drawerPaperClose),
+            }}
+            open={this.state.isNavOpen}>
+            <div className={classes.toolbarIcon}>
+              <IconButton onClick={() => this.closeDrawer()}>
+                <ChevronLeftIcon />
+              </IconButton>
+            </div>
+            <Divider />
+            <List>{mainListItems}</List>
+            <Divider />
+            <List>{helpListItems}</List>
+          </Drawer>
+          <main className={classes.content}>
+            <Container maxWidth="xl" className={classes.container}>
+              <Topology className={classes.topology} ref={node => this.tc = node} nodeAttrs={this.nodeAttrs.bind(this)} linkAttrs={this.linkAttrs.bind(this)}
+                onNodeSelected={this.onNodeSelected.bind(this)}
+                sortNodesFnc={this.sortNodesFnc.bind(this)}
+                onShowNodeContextMenu={this.onShowNodeContextMenu.bind(this)}
+                weightTitles={this.weightTitles()}
+                groupSize={this.props.config.groupSize}
+                groupType={this.props.config.groupType.bind(this.props.config)}
+                groupName={this.props.config.groupName.bind(this.props.config)}
+                onClick={this.onTopologyClick.bind(this)}
+                onLinkSelected={this.onLinkSelected.bind(this)}
+                onLinkTagChange={this.onLinkTagChange.bind(this)}
+                onNodeClicked={this.props.config.nodeClicked.bind(this.props.config)}
+                onNodeDblClicked={this.props.config.nodeDblClicked.bind(this.props.config)}
+                defaultLinkTagMode={this.props.config.defaultLinkTagMode.bind(this.props.config)}
+                alarmLevel={this.props.config.alarmLevel.bind(this)}
+              />
+            </Container>
+            <Container className={classes.rightPanel}>
+              <Paper className={clsx(classes.rightPanelPaper, (!this.props.selection.length || !this.state.isSelectionOpen) && classes.rightPanelPaperClose)}
+                square={true}>
+                <SelectionPanel onLocation={this.onSelectionLocation.bind(this)} onClose={this.onSelectionClose.bind(this)} />
               </Paper>
             </Container>
-          }
-        </main>
-      </div>
+            <Container className={classes.nodeTagsPanel}>
+              {Array.from(this.state.nodeTagStates.keys()).sort((a, b) => {
+                if (a === this.props.config.defaultNodeTag) {
+                  return -1
+                } else if (b === this.props.config.defaultNodeTag) {
+                  return 1
+                }
+                return 0
+              }).map((tag) => {
+                // TODO remove magic word (_always)
+                if (tag === "_always") {
+                  return null
+                }
+
+                return (
+                  <Fab key={tag} variant="extended" aria-label="delete" size="small"
+                    color={this.state.nodeTagStates.get(tag) ? "primary" : "default"}
+                    className={classes.nodeTagsFab}
+                    onClick={this.activeNodeTag.bind(this, tag)}>
+                    {tag}
+                  </Fab>
+                )
+              })}
+            </Container>
+            {this.staticDataURL === "" &&
+              <Container className={classes.filtersPanel}>
+                {this.props.config.filters.map((filter, i) => (
+                  <Button variant="contained" key={i} aria-label="delete" size="small"
+                    color={this.state.wsContext.GremlinFilter === filter.gremlin ? "primary" : "default"}
+                    className={classes.filtersFab}
+                    onClick={() => { this.setGremlinFilter(filter.gremlin) }}>
+                    {filter.label}
+                  </Button>
+                ))}
+                <DateTimePicker
+                  value={this.state.selectedDate}
+                  ampm={false}
+                  variant="inline"
+                  label="Go back in time"
+                  onChange={(date) => {
+                    this.setGremlinFilter(`G.At('${date.toHTTP()}')`)
+                    this.setState({ selectedDate: date.toHTTP() })
+                  }}
+                  style={{marginLeft: "10px"}}
+                />
+              </Container>
+            }
+            {this.state.linkTagStates.size !== 0 &&
+              <Container className={classes.linkTagsPanel}>
+                <Paper className={classes.linkTagsPanelPaper}>
+                  <Typography component="h6" color="primary" gutterBottom>
+                    Link types
+                  </Typography>
+                  <FormGroup>
+                    {Array.from(this.state.linkTagStates.keys()).map((key) => (
+                      <FormControlLabel key={key} control={
+                        <Checkbox value={key} color="primary" onChange={this.onLinkTagStateChange.bind(this)}
+                          checked={this.state.linkTagStates.get(key) === LinkTagState.Visible}
+                          indeterminate={this.state.linkTagStates.get(key) === LinkTagState.EventBased} />
+                      }
+                        label={key} />
+                    ))}
+                  </FormGroup>
+                </Paper>
+              </Container>
+            }
+          </main>
+        </div>
+      </MuiPickersUtilsProvider>
     )
   }
 }
