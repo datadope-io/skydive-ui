@@ -942,14 +942,21 @@ class App extends React.Component<Props, State> {
                 return 1
               }
               return 0
-            }).map((tag) => (
-              <Fab key={tag} variant="extended" aria-label="delete" size="small"
-                color={this.state.nodeTagStates.get(tag) ? "primary" : "default"}
-                className={classes.nodeTagsFab}
-                onClick={this.activeNodeTag.bind(this, tag)}>
-                {tag}
-              </Fab>
-            ))}
+            }).map((tag) => {
+              // TODO remove magic word (_always)
+              if (tag === "_always") {
+                return null
+              }
+
+              return (
+                <Fab key={tag} variant="extended" aria-label="delete" size="small"
+                  color={this.state.nodeTagStates.get(tag) ? "primary" : "default"}
+                  className={classes.nodeTagsFab}
+                  onClick={this.activeNodeTag.bind(this, tag)}>
+                  {tag}
+                </Fab>
+              )
+            })}
           </Container>
           {this.staticDataURL === "" &&
             <Container className={classes.filtersPanel}>

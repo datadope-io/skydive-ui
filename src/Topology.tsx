@@ -445,7 +445,7 @@ export class Topology extends React.Component<Props, {}> {
 
   private defaultState(): NodeState {
     return {
-      expanded: false,
+      expanded: false,  // by default nodes are collapsed
       selected: false,
       mouseover: false,
       groupOffset: 0,
@@ -819,9 +819,10 @@ export class Topology extends React.Component<Props, {}> {
   ): NodeWrapper | null {
     // always return root node as it is the base of the tree and thus all the
     // nodes
+    // TODO remove magic word (_always)
     if (
       !node.tags.some(
-        (tag) => tag === "root" || this.nodeTagStates.get(tag) === true
+        (tag) => tag === "root" || tag === "_always" || this.nodeTagStates.get(tag) === true
       )
     ) {
       return null;
@@ -2002,6 +2003,67 @@ export class Topology extends React.Component<Props, {}> {
       .attr("height", (d: LevelRect) => d.bb.height);
   }
 
+  // Nodes which are not part of the main "Services" tree could be drawn centered in the screen
+  // to improve the visualization of the ownership_X links
+  // We assume that only nodes coming from he Service tree will be shown.
+  // Only levels with all nodes with root as parent will be modified.
+  // TODO improve/simplify this function
+  private centerOrphanNodes(root: any) {
+    let levels = new Object();
+    const nodes = root.descendants()
+
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      //if (node.data.type !== WrapperType.Hidden && node.data.parent && node.data.parent.id === "root") {
+      if (node.data.type !== WrapperType.Hidden && node.data.parent) {
+        const weight = node.data.wrapped.getWeight()
+        if (levels.hasOwnProperty(weight)) {
+          levels[weight].push(node)
+        } else {
+          levels[weight] = [node]
+        }
+      }
+    }
+
+    // Remove levels with nodes not hanging directly from root
+    // Remove also Service level
+    let orphaned_levels = new Object()
+    Object.entries(levels).forEach(
+      ([key, nodes]) => {
+        let root_nodes = true
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          // TODO remove magic word (Service)
+          if (node.data.parent && (node.data.parent.id !== "root" || node.data.wrapped.data.Type === "Service")) {
+            root_nodes = false
+          }
+        }
+        if (root_nodes) {
+          orphaned_levels[key] = nodes
+        }
+      }
+    );
+
+    // Center position of orphan levels
+    Object.entries(orphaned_levels).forEach(
+      ([key, nodes]) => {
+        // Nodes should be spacied 2*this.nodeWidth
+        // Generate an array with that spacing starting on 0
+        // Eg: [0, 300, 600]
+        const spacing = Array(nodes.length).fill(1).map( (_, i) => i*2*this.nodeWidth)
+
+        // Center the spacing based on the number of nodes
+        // TODO the center varies with collapsing. Choose 0?
+        // Eg: [-150, 150, 450]
+        const x = spacing.map((i,_) => i-(this.nodeWidth*(2-nodes.length)))
+
+        for (let i = 0; i < nodes.length; i++) {
+          nodes[i].x = x[i]
+        }
+      }
+    );
+  }
+
   private renderHieraLinks(root: any) {
     const hieraLinker = linkVertical()
       .x((d) => d.x)
@@ -2880,6 +2942,10 @@ export class Topology extends React.Component<Props, {}> {
     // Draw ownership links
     this.renderHieraLinks(root);
     this.renderGroups();
+
+    // Center in screen nodes whose parent is root and are not Service
+    this.centerOrphanNodes(root);
+
     this.renderNodes(root);
     // Draw other link types
     this.renderLinks();

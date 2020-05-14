@@ -406,7 +406,7 @@ var DefaultConfig = {
     return node.data.Name.substring(0, 8);
   },
   // Number of nodes displayed when a group is displayed
-  groupSize: 3,
+  groupSize: 25,
   // The group type of each node
   groupType: function (node: Node): string | undefined {
     var nodeType = node.data.Type;
