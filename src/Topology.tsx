@@ -1810,9 +1810,15 @@ export class Topology extends React.Component<Props, {}> {
     }
     d.data.wrapped.state.mouseover = active;
 
-    var opacity = active ? 1 : 0;
+    // Change class between filled with the same background or a different color
+    const nodeClass = new Array<string>()
+        .concat(
+          "node",
+          active ? "node-overlay-over" : "node-overlay"
+        )
+        .join(" ");
 
-    select("#node-overlay-" + id).style("opacity", opacity);
+    select("#node-overlay-" + id).attr("class", nodeClass)
 
     if (!d.data.wrapped.state.selected) {
       this.highlightNeighborLinks(d, active);
@@ -2465,7 +2471,6 @@ export class Topology extends React.Component<Props, {}> {
       .attr("id", (d: D3Node) => "node-overlay-" + d.data.id)
       .attr("class", "node-overlay")
       .attr("r", hexSize + 16)
-      .style("opacity", 0)
       .attr("pointer-events", "none");
 
     var highlight = nodeEnter
@@ -2493,17 +2498,21 @@ export class Topology extends React.Component<Props, {}> {
       })
       .attr("r", hexSize + 16);
 
+    /*
     nodeEnter
       .append("circle")
       .attr("class", "node-disc")
       .attr("r", hexSize + 8)
       .attr("pointer-events", "none");
+    */
 
+    /*
     nodeEnter
       .append("path")
       .attr("class", "node-hexagon")
       .attr("d", (d: D3Node) => this.liner(this.hexagon(d, hexSize)))
       .attr("pointer-events", "none");
+     */
 
     const isImgIcon = (d: D3Node): boolean => {
       if (this.props.nodeAttrs(d.data.wrapped).href) {
@@ -2527,7 +2536,7 @@ export class Topology extends React.Component<Props, {}> {
       } else {
         el.append("text")
           .attr("class", (d: D3Node) => "node-icon " + attrs.iconClass)
-          .attr("dy", 9)
+          .attr("dy", 13)
           .text((d: D3Node) => attrs.icon)
           .attr("pointer-events", "none");
       }
