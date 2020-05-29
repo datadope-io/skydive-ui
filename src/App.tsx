@@ -57,7 +57,7 @@ import {
 
 import { styles } from './AppStyles'
 import { Topology, Node, NodeAttrs, LinkAttrs, LinkTagState, Link } from './Topology'
-import { mainListItems, helpListItems } from './Menu'
+import { MainListItems, helpListItems } from './Menu'
 import AutoCompleteInput from './AutoComplete'
 import { AppState, selectElement, unselectElement, bumpRevision, session, closeSession, setConfig } from './Store'
 import SelectionPanel from './SelectionPanel'
@@ -67,6 +67,7 @@ import * as api from './api/api'
 import './App.css'
 import Logo from '../assets/Logo.png'
 import DefaultConfig from './Config'
+import {TopologyType} from './TopologyType'
 
 const queryString = require('query-string')
 
@@ -90,6 +91,7 @@ interface Props extends WithSnackbarProps {
   history: any
   config: typeof DefaultConfig
   setConfig: typeof setConfig
+  topologyType: TopologyType
 }
 
 export interface WSContext {
@@ -108,6 +110,7 @@ interface State {
   isSelectionOpen: boolean
   wsContext: WSContext
   selectedDate: Date
+  topologyType: TopologyType
 }
 
 class App extends React.Component<Props, State> {
@@ -141,6 +144,7 @@ class App extends React.Component<Props, State> {
       isSelectionOpen: false,
       wsContext: { GremlinFilter: null },
       selectedDate: new Date(),
+      topologyType: this.props.topologyType,
     }
 
     this.synced = false
@@ -728,6 +732,21 @@ class App extends React.Component<Props, State> {
     }
   }
 
+  // Change between Service and Network topology
+  // In Network topology, filter to only get VMs + SW nodes
+  // TODO: how to handle a lot of nodes? Some way to select one node and then each expand
+  // ir requesting more linked nodes?
+  // What should be put at the beggining?
+  changeTopologyType(topologyType: TopologyType) {
+    this.setState({ topologyType: topologyType })
+    if (topologyType === TopologyType.Network) {
+      this.setGremlinFilter("G.V().Has('Type', 'VMs').Descendants().SubGraph()")
+    } else {
+      this.setGremlinFilter("")
+    }
+    this.closeDrawer()
+  }
+
   onTopologyClick() {
     this.setState({ isSelectionOpen: false })
   }
@@ -913,7 +932,9 @@ class App extends React.Component<Props, State> {
               </IconButton>
             </div>
             <Divider />
-            <List>{mainListItems}</List>
+            <List><MainListItems 
+                changeTopology={this.changeTopologyType.bind(this)}
+            /></List>
             <Divider />
             <List>{helpListItems}</List>
           </Drawer>
@@ -934,6 +955,7 @@ class App extends React.Component<Props, State> {
                 onNodeDblClicked={this.props.config.nodeDblClicked.bind(this.props.config)}
                 defaultLinkTagMode={this.props.config.defaultLinkTagMode.bind(this.props.config)}
                 alarmLevel={this.props.config.alarmLevel.bind(this)}
+                topologyType={this.state.topologyType}
               />
             </Container>
             <Container className={classes.rightPanel}>
@@ -968,6 +990,7 @@ class App extends React.Component<Props, State> {
             </Container>
             {this.staticDataURL === "" &&
               <Container className={classes.filtersPanel}>
+                {/* TODO add a box to put a custom filter. Here? */}
                 {this.props.config.filters.map((filter, i) => (
                   <Button variant="contained" key={i} aria-label="delete" size="small"
                     color={this.state.wsContext.GremlinFilter === filter.gremlin ? "primary" : "default"}
@@ -1018,7 +1041,8 @@ class App extends React.Component<Props, State> {
 export const mapStateToProps = (state: AppState) => ({
   selection: state.selection,
   session: state.session,
-  config: state.config
+  config: state.config,
+  topologyType: state.topologyType
 })
 
 export const mapDispatchToProps = ({

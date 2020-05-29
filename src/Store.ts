@@ -19,6 +19,7 @@ import { createStore } from 'redux'
 
 import { Node, Link } from './Topology'
 import DefaultConfig from './Config'
+import {TopologyType} from './TopologyType'
 
 export const SELECT_ELEMENT = 'SELECT_ELEMENT'
 export const UNSELECT_ELEMENT = 'UNSELECT_ELEMENT'
@@ -26,6 +27,7 @@ export const BUMP_REVISION = 'BUMP_REVISION'
 export const OPEN_SESSION = 'OPEN_SESSION'
 export const CLOSE_SESSION = 'CLOSE_SESSION'
 export const SET_CONFIG = 'SET_CONFIG'
+export const SET_TOPOLOGY_TYPE = 'SET_TOPOLOGY_TYPE'
 
 interface selectElementAction {
     type: typeof SELECT_ELEMENT
@@ -63,6 +65,11 @@ interface closeSessionAction {
 interface setConfigAction {
     type: typeof SET_CONFIG
     payload: typeof DefaultConfig
+}
+
+interface setTopologyTypeAction {
+    type: typeof SET_TOPOLOGY_TYPE
+    payload: typeof TopologyType
 }
 
 export function selectElement(node: Node | Link): selectElementAction {
@@ -113,10 +120,18 @@ export function setConfig(config: typeof DefaultConfig): setConfigAction {
     }
 }
 
-export type ActionTypes = selectElementAction | unselectElementAction | bumpRevisionAction | openSessionAction | closeSessionAction | setConfigAction
+export function setTopologyType(value: typeof TopologyType): setTopologyTypeAction {
+    return {
+        type: SET_TOPOLOGY_TYPE,
+        payload: value
+    }
+}
+
+export type ActionTypes = selectElementAction | unselectElementAction | bumpRevisionAction | openSessionAction | closeSessionAction | setConfigAction | setTopologyTypeAction
 
 const emptySession = {
     endpoint: `${window.location.protocol}//${window.location.hostname}:8082`,
+    //endpoint: `http://10.20.20.151:8082`, // TODO puesto a fuego a un server
     username: "",
     token: "",
     permissions: {},
@@ -139,7 +154,8 @@ const initialState = {
     selection: new Array<Node | Link>(),
     selectionRevision: 0,
     session: loadSession(),
-    config: DefaultConfig
+    config: DefaultConfig,
+    topologyType: TopologyType.Service
 }
 
 function appReducer(state = initialState, action: ActionTypes) {
@@ -185,6 +201,11 @@ function appReducer(state = initialState, action: ActionTypes) {
             return {
                 ...state,
                 config: action.payload
+            }
+        case SET_TOPOLOGY_TYPE:
+            return {
+                ...state,
+                topologyType: action.payload
             }
         default:
             return state

@@ -725,7 +725,12 @@ var DefaultConfig = {
   // Default selector for the link menu
   defaultLinkTagMode: function (tag: string): number {
     // TODO convert the RelationType check into a function
+    // ownership_ links are shown by default
     if (tag.slice(0,10) === "ownership_") {
+      return 3
+    }
+    // network connection links are shown by default
+    if (tag === "tcp_conn") {
       return 3
     }
     return 2;

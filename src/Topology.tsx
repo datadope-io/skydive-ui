@@ -17,6 +17,15 @@
 
 import * as React from "react";
 import { hierarchy, tree } from "d3-hierarchy";
+import {
+    forceLink,
+    forceCollide,
+    forceCenter,
+    forceX,
+    forceY,
+    forceSimulation,
+    forceManyBody,
+} from "d3-force";
 import { Selection, select, selectAll, event } from "d3-selection";
 import {
   line,
@@ -27,6 +36,7 @@ import {
 import {} from "d3-transition";
 import { zoom, zoomIdentity } from "d3-zoom";
 import ResizeObserver from "react-resize-observer";
+import {TopologyType} from './TopologyType'
 
 import "./Topology.css";
 
@@ -215,6 +225,7 @@ interface Props {
   onNodeDblClicked: (node: Node) => void;
   defaultLinkTagMode?: (tag: string) => LinkTagState;
   alarmLevel: (node: Node) => string;
+  topologyType: TopologyType;
 }
 
 /**
@@ -261,6 +272,10 @@ export class Topology extends React.Component<Props, {}> {
   nodeTagStates: Map<string, boolean>;
   linkTagStates: Map<string, LinkTagState>;
   weightTitles: Map<number, string>;
+  topologyType: TopologyType;
+
+  networkNodes: Array<any>;
+  networkLinks: Array<any>;
 
   constructor(props: Props) {
     super(props);
@@ -493,6 +508,9 @@ export class Topology extends React.Component<Props, {}> {
     this.nodeGroup = new Map<string, NodeWrapper>();
 
     this.weights = new Array<number>();
+
+    this.networkNodes = new Array<any>();
+    this.networkLinks = new Array<any>();
 
     this.invalidated = true;
   }
@@ -951,7 +969,9 @@ export class Topology extends React.Component<Props, {}> {
     }
 
     // Only show nodes related to the service nodes
-    tree = this.onlyShowServicesTree(tree);
+    if (this.props.topologyType === TopologyType.Service) {
+      tree = this.onlyShowServicesTree(tree);
+    }
 
     for (let weight of this.weights) {
       let cache = {
@@ -1138,6 +1158,32 @@ export class Topology extends React.Component<Props, {}> {
     ];
   }
 
+
+  private findVisible(node: Node | null, pseudo_ownership: boolean) {
+    while (node) {
+      if (this.d3nodes.get(node.id)) {
+        return node;
+      }
+
+      // check within groups
+      var group = this.nodeGroup.get(node.id);
+      if (group) {
+        for (let child of group.wrapped.children) {
+          if (child.id === node.id && this.d3nodes.get(group.id)) {
+            return group.wrapped;
+          }
+        }
+      }
+
+      // ownership_X relationships should only be shown between end nodes or groups
+      if (pseudo_ownership) {
+        return
+      }
+
+      node = node.parent;
+    }
+  };
+
   private visibleLinks(): Array<Link> {
     if (this.visibleLinksCache) {
       return this.visibleLinksCache;
@@ -1145,38 +1191,13 @@ export class Topology extends React.Component<Props, {}> {
 
     var links = new Array<Link>();
 
-    var findVisible = (node: Node | null, pseudo_ownership: boolean) => {
-      while (node) {
-        if (this.d3nodes.get(node.id)) {
-          return node;
-        }
-
-        // check within groups
-        var group = this.nodeGroup.get(node.id);
-        if (group) {
-          for (let child of group.wrapped.children) {
-            if (child.id === node.id && this.d3nodes.get(group.id)) {
-              return group.wrapped;
-            }
-          }
-        }
-
-        // ownership_X relationships should be only shown between end nodes or groups
-        if (pseudo_ownership) {
-          return
-        }
-
-        node = node.parent;
-      }
-    };
-
     // clear present tags map
     var tagPresent = new Map<string, boolean>();
 
     this.links.forEach((link: Link) => {
       // TODO convert the RelationType check into a function
-      var source = findVisible(link.source, link.data.RelationType.slice(0,10) === "ownership_");
-      var target = findVisible(link.target, link.data.RelationType.slice(0,10) === "ownership_");
+      var source = this.findVisible(link.source, link.data.RelationType.slice(0,10) === "ownership_");
+      var target = this.findVisible(link.target, link.data.RelationType.slice(0,10) === "ownership_");
 
       if (
         source &&
@@ -2415,13 +2436,13 @@ export class Topology extends React.Component<Props, {}> {
     groupButton.transition().duration(animDuration).style("opacity", 1);
   }
 
-  private renderNodes(root: any) {
+  private renderNodes(data: any) {
     var self = this;
 
     var node = this.gNodes
       .selectAll("g.node")
       .interrupt()
-      .data(root.descendants(), (d: D3Node) => d.data.id);
+      .data(data, (d: D3Node) => d.data.id);
 
     const nodeClass = (d: D3Node) =>
       new Array<string>()
@@ -2762,6 +2783,14 @@ export class Topology extends React.Component<Props, {}> {
         return;
       }
 
+      // Simple links for network connections
+      if (d.data.RelationType === "tcp_conn") {
+        return vLinker({
+          source: {x: dSource.x, y: dSource.y, node: d.source},
+          target: {x: dTarget.x, y: dTarget.y, node: d.target},
+        })
+      }
+
       let source = dSource;
       let target = dTarget;
       if (dSource.y === dTarget.y) {
@@ -2948,15 +2977,123 @@ export class Topology extends React.Component<Props, {}> {
       this.d3nodes.set(node.data.id, node);
     });
 
-    this.renderLevels();
+
+    if (this.props.topologyType === TopologyType.Network) {
+      // TODO arreglar tema posición.
+      // Si reinicio el array cada vez, me mueve todo en cada despliegue.
+      // Pero si no lo hago, cuando repinto no me pone los links donde deberia. Revisar esto último que a lo mejor es una chorrada
+      this.networkNodes = new Array<any>();
+      root.each((node) => {
+        if (node.data.id !== "root") {
+          this.networkNodes.push(node)
+        }
+      })
+        /*
+      if (this.networkNodes.length === 0) {
+        this.networkNodes = new Array<any>();
+        root.each((node) => {
+          if (node.data.id !== "root") {
+            this.networkNodes.push(node)
+          }
+        })
+      } else {
+        for (let i = 0; i < this.networkNodes.length; i++) {
+          const networkNode = this.networkNodes[i];
+          networkNode.fx = networkNode.x
+          networkNode.fy = networkNode.y
+        }
+      }
+         */
+
+      this.networkLinks = new Array<any>();
+      // Create links between nodes or to its parent
+      // Crear links entre los nodos.
+      // Como todos los nodos software no estarán visibles, tendremos que crear el link contra el parent, hasta
+      // el nodo sw esté disponible.
+      this.links.forEach((l) => {
+        // Clone object, to not modify the original
+        let link = {...l}
+
+        // Cambiar los source/target de los links por los nodos que estén actualmente visibles
+        let vn = this.findVisible(link.source, false)
+        if (vn) {
+          link.source = vn
+        }
+        vn = this.findVisible(link.target, false)
+        if (vn) {
+          link.target = vn
+        }
+
+        // Cambiando el source/target de los links por los nodos de visibles (this.networkNodes)
+        // para que el forceSimulation sepa que nodo engancha con que
+        for (let i = 0; i < this.networkNodes.length; i++) {
+          const networkNode = this.networkNodes[i];
+
+          if (networkNode.data.id === link.source.id) {
+            link.source = networkNode
+          }
+          if (networkNode.data.id === link.target.id) {
+            link.target = networkNode
+          }
+        }
+        this.networkLinks.push(link)
+      })
+
+      // Ahora añadimos los links de ownership
+      // Asi evitamos meter esos links de ownership en this.links
+      this.networkLinks = [...this.networkLinks, ...root.links()]
+
+      // Remove source=root links
+      this.networkLinks = this.networkLinks.filter((l) => l.source.data.id !== "root")
+
+      // Es complicado reducir el número de cruces de edges: https://stackoverflow.com/questions/12007141/d3-js-force-directed-graph-reduce-edge-crossings-by-making-edges-repel-each-oth
+
+      // TODO ver como evitar que los nodos VMs se muevan cuando se despliegan: https://bl.ocks.org/mbostock/3750558
+      // Parece que será jugando node.fixed = true
+      const simulation = forceSimulation(this.networkNodes)
+        .force("charge", forceManyBody().strength(-600))
+        .force("link", forceLink(this.networkLinks).distance((l) => {
+          // ownership type links has not property "type"
+          if (!l.hasOwnProperty("type")) {
+            return 200
+          }
+          return 500
+        }).strength(0.9).iterations(2))
+        .force("collide", forceCollide().radius(90).strength(0.2).iterations(1))
+        .force("center", forceCenter())
+        .force("x", forceX(0).strength(0.01))
+        .force("y", forceY(0).strength(0.01))
+        .alphaDecay(0.0050)
+        .stop()
+        /* esto mas o menos funciona, tal vez añadiendo collide
+        .force("charge", forceManyBody().strength(-500))
+        .force("link", forceLink(this.networkLinks).distance(150))
+        .force("center", forceCenter())
+        */
+        //.force("link", forceLink(links).id(d => 1))
+        //.force("x", forceX())
+        //.force("y", forceY())
+
+
+      // TODO For large graphs, static layouts should be computed in a web worker to avoid freezing the user interface
+      // https://bl.ocks.org/mbostock/01ab2e85e8727d6529d20391c0fd9a16
+      simulation.tick(Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay())));
+
+      this.renderNodes(this.networkNodes);
+    } else {
+      // Topology service
+      this.renderLevels();
+      this.renderGroups();
+
+      // Center in screen nodes whose parent is root and are not Service
+      this.centerOrphanNodes(root);
+
+      this.renderNodes(root.descendants());
+    }
+
     // Draw ownership links
     this.renderHieraLinks(root);
-    this.renderGroups();
 
-    // Center in screen nodes whose parent is root and are not Service
-    this.centerOrphanNodes(root);
-
-    this.renderNodes(root);
     // Draw other link types
     this.renderLinks();
 
