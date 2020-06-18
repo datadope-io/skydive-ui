@@ -355,8 +355,14 @@ class App extends React.Component<Props, State> {
     let parent = this.tc.nodes.get(edge.Parent)
     let child = this.tc.nodes.get(edge.Child)
 
+    // TODO el RelationType es diferente para topologia service o network
+    let ownershipRelationType = "ownership"
+    if (this.state.topologyType === TopologyType.Network) {
+      ownershipRelationType = "installed"
+    }
+
     if (parent && child) {
-      if (edge.Metadata.RelationType === "ownership") {
+      if (edge.Metadata.RelationType === ownershipRelationType) {
         this.tc.setParent(child, parent)
       } else {
         this.tc.addLink(edge.ID, parent, child, [edge.Metadata.RelationType], edge.Metadata)
@@ -740,7 +746,16 @@ class App extends React.Component<Props, State> {
   changeTopologyType(topologyType: TopologyType) {
     this.setState({ topologyType: topologyType })
     if (topologyType === TopologyType.Network) {
-      this.setGremlinFilter("G.V().Has('Type', 'VMs').Descendants().SubGraph()")
+      //this.setGremlinFilter("G.V().Has('Type', 'VMs').Descendants().SubGraph()")
+      // TODO con esta query solo mostramos VMs/SW que tengan relaciones tcp_conn, para evitar mostrar todas las VMs "normales" que no tienen ninguna conex.
+      // TODO tenemos un problema con el ownership VMs <-> SW
+      // Para la topología de servicios SW es owner de la VM (para poder mostrar las VMs debajo del SW que viene de los endpoints
+      // Para la topología de network, VM es owner del SW que tiene instalado (para poder mostrar solo las VMs con sus conex y luego al expandir mostrar el SW interconectado)
+      //
+      // No podemos hacer a las VMs owners del software, porque entonces se rompe la dependencia de ownership entre endpoint y SW, que parece bastante clara.
+      // Idea: que la realación entre vm->sw no sea de ownership
+      //this.setGremlinFilter("G.E().Has('RelationType', 'tcp_conn').OutV().In('Type', 'VMs').As('tcpOut').G.E().Has('RelationType', 'tcp_conn').InV().In('Type', 'VMs').As('tcpIn').Select('tcpOut', 'tcpIn').Dedup().Descendants().SubGraph()")
+      this.setGremlinFilter("G.V().HasEither('Type', 'VMs', 'Type', 'Software').SubGraph()")
     } else {
       this.setGremlinFilter("")
     }
